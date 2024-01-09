@@ -1,81 +1,87 @@
-# Desafio 3 Backend
+Pre-Entrega 1 Back-end 
 
-Este proyecto corresponde al Desafío 3 del curso de Backend. Implementa un servidor de Express que utiliza métodos de la clase `EventManager` para gestionar eventos.
+This project is part of the backend development challenge, focusing on building a server using Node.js and Express with the implementation of various endpoints for managing products, users, and carts.
 
-## Estructura del Proyecto
+## Table of Contents
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [Endpoints](#endpoints)
+- [File Structure](#file-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
-La estructura de carpetas y archivos es la siguiente:
+## Getting Started
 
-```plaintext
-Desafio 3 Backend/
-│
+### Prerequisites
+
+Before running the project, ensure you have the following installed:
+- Node.js
+- npm (Node Package Manager)
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/your-username/desafio-3-backend.git
+Change to the project directory:
+
+bash
+Copy code
+cd desafio-3-backend
+Install dependencies:
+
+bash
+Copy code
+npm install
+Usage
+To start the server, run:
+
+bash
+Copy code
+npm start
+The server will run on port 8080.
+
+Endpoints
+GET /api/products: Get all products.
+GET /api/products/:pid: Get a product by ID.
+GET /api/users: Get all users.
+GET /api/users/:uid: Get a user by ID.
+Replace the above placeholders with specific information about your project's endpoints.
+
+File Structure
+The project follows the following directory structure:
+
+wasm
+Copy code
 ├── server/
 │   ├── data/
 │   │   ├── Fs/
 │   │   │   ├── files/
-│   │   │   │   ├── events.fs.js
+│   │   │   │   ├── products.fs.js
+│   │   │   │   ├── users.fs.js
+│   │   │   │   ├── carts.fs.js
 │   │   │   ├── memory/
-│   │   │   │   ├── events.memory.js
+│   │   │   │   ├── products.memory.js
+│   │   │   │   ├── users.memory.js
+│   │   │   │   ├── carts.memory.js
 │   │   ├── server.js
-│   ├── ... (otros archivos relevantes)
 ├── ...
 
-Instalación
-Para instalar y configurar el proyecto, sigue los siguientes pasos:
+Replace the above placeholders with the actual structure of your project.
 
-bash
-Copy code
-# Clona el repositorio
-git clone https://github.com/tu-usuario/desafio-3-backend.git
+Contributing
+Contributions are welcome! Please follow the contribution guidelines.
 
-# Cambia al directorio del proyecto
-cd desafio-3-backend
+License
+This project is licensed under the MIT License.
 
-# Instala las dependencias
-npm install
-Uso
-Para ejecutar el servidor:
-
-bash
-Copy code
-# Inicia el servidor
-node server/server.js
-Endpoints
-GET /api/events
-Recupera todos los eventos.
-
-Parámetros: Ninguno
-Respuesta: { success: true, response: [/* array de eventos */] }
-GET /api/events/:eid
-Recupera un evento específico por su ID.
-
-Parámetros: eid (ID del evento)
-Respuesta: { success: true, response: /* objeto de evento */ }
-GET /api/events/:name/:place
-Crea un nuevo evento.
-
-Parámetros: name (nombre del evento), place (lugar del evento)
-Respuesta: { success: true, response: /* objeto de evento creado */ }
-GET /api/events/sold/:eid/:quantity
-Vende un ticket para un evento específico.
-
-Parámetros: eid (ID del evento), quantity (cantidad de tickets vendidos)
-Respuesta: { success: true, response: /* objeto de evento actualizado */ }
-GET /api/events/destroy/:eid
-Elimina un evento específico.
-
-Parámetros: eid (ID del evento)
-Respuesta: { success: true, message: "Evento eliminado" }
-Contribuir
-Si deseas contribuir al proyecto, sigue las pautas en CONTRIBUTING.md.
-
-Licencia
-Este proyecto está bajo la Licencia MIT.
-
-sql
+vbnet
 Copy code
 
-Replace the placeholder text with your actual project details. If you have specific information about the endpoints or any other details, please include them in the respective sections.
+Feel free to customize this template based on your project's specifics. If you have a `CONTRIBUTING.md` or `LICENSE` file, make sure to include them in your project and update the links accordingly.
 
 
 
