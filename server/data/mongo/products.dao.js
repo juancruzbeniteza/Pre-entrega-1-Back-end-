@@ -1,8 +1,13 @@
 const { model, Schema } = require('mongoose');
 
 const ProductSchema = new Schema({
-  // Define your product schema fields here
-  // Example: title, description, price, etc.
+  title: String,
+  description: String,
+  price: Number,
+  thumbnail: String,
+  code: String,
+  stock: Number,
+  // Add any other fields if necessary
 });
 
 const ProductModel = model('Product', ProductSchema);
@@ -26,5 +31,5 @@ module.exports = {
     }
   },
 
-  // Add other CRUD operations as needed
+  // Add any other CRUD operations if needed
 };

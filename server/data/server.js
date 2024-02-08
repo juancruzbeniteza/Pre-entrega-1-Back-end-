@@ -1,24 +1,25 @@
-const dotenv = require("dotenv")
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const exphbs = require("express-handlebars");
 const http = require("http");
 const socketIO = require("socket.io");
 const path = require("path");
-const ProductFsManager = require("./Fs/files/products.fs.js");
-const UserFsManager = require("./Fs/files/users.fs.js");
-const ProductMemoryManager = require("./memory/products.memory.js");
-const UserMemoryManager = require("./memory/users.memory.js");
-const CartFsManager = require("./Fs/files/carts.fs.js");
-const CartMemoryManager = require("./memory/cart.memory.js");
 const mongoose = require("mongoose");
-const dbConnection = require("./utils/db.js")
+const dbConnection = require("./utils/db.js");
+
+
+mongoose.connect(process.env.DB_LINK, {
+  useUnifiedTopology: true,
+}).then(() => {
+  console.log("MongoDB connected successfully");
+}).catch((error) => {
+  console.error("Error connecting to MongoDB:", error.message);
+});
 
 // Import DAO modules
 const CartDao = require("./mongo/carts.dao.js");
-const MessageDao = require("./mongo/messages.dao");
 const ProductDao = require("./mongo/products.dao.js");
-const UserDao = require("./mongo/users.dao.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -26,124 +27,155 @@ const io = socketIO(server);
 
 app.use(bodyParser.json());
 
-// Set up Handlebars
-const hbs = exphbs.create({ defaultLayout: "main" });
-app.engine("handlebars", hbs.engine);
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, "public")));
+
+// Set up Handlebars as the view engine
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
 app.set("view engine", "handlebars");
 
-// Set up body parser middleware
-app.use(bodyParser.json());
+// Handle CORS
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
-// Set up static files
-app.use(express.static(path.join(__dirname, "public")));
-
-const productManager =
-  process.env.USE_MEMORY_MANAGER === "true"
-    ? new ProductMemoryManager()
-    : new ProductFsManager("./Fs/files/productos.json");
-const userManager =
-  process.env.USE_MEMORY_MANAGER === "true"
-    ? new UserMemoryManager()
-    : new UserFsManager("./Fs/files/users.json");
-const cartManager =
-  process.env.USE_MEMORY_MANAGER === "true"
-    ? new CartMemoryManager()
-    : new CartFsManager("./Fs/files/carts.json");
-
-// Products Endpoints
+// Modify GET /api/products to handle filters, pagination, and sorting
 app.get("/api/products", async (req, res) => {
-  const products = await productManager.read();
-  if (products.length > 0) {
-    res.json({ success: true, response: products });
-  } else {
-    res.status(404).json({ success: false, message: "not found!" });
+  try {
+    const { limit = 10, page = 1, sort, query } = req.query;
+
+    // Define the filter based on the query parameter
+    const filter = query ? { /* Define your filter criteria based on the query */ } : {};
+
+    // Use the ProductDao or ProductMemoryManager to fetch products based on the provided parameters
+    const products = await ProductDao.getProducts({ filter, limit, page, sort });
+
+    // Calculate pagination details
+    const totalProducts = await ProductDao.countProducts(filter);
+    const totalPages = Math.ceil(totalProducts / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    // Construct the response object
+    const response = {
+      status: "success",
+      payload: products,
+      totalPages,
+      prevPage: hasPrevPage ? page - 1 : null,
+      nextPage: hasNextPage ? page + 1 : null,
+      page,
+      hasPrevPage,
+      hasNextPage,
+      prevLink: hasPrevPage ? `/api/products?limit=${limit}&page=${page - 1}&sort=${sort}` : null,
+      nextLink: hasNextPage ? `/api/products?limit=${limit}&page=${page + 1}&sort=${sort}` : null,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching products:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
 
-app.get("/api/products/:pid", async (req, res) => {
-  const productId = req.params.pid;
-  const product = await productManager.readOne(productId);
+// Add new routes for product and cart management
+app.delete("/api/carts/:cid/products/:pid", async (req, res) => {
+  try {
+    const cartId = req.params.cid;
+    const productId = req.params.pid;
 
-  if (product) {
-    res.json({ success: true, response: product });
-  } else {
-    res.status(404).json({ success: false, message: "not found!" });
+    // Use the CartDao or CartMemoryManager to handle product deletion from the cart
+    const updatedCart = await CartDao.removeProductFromCart(cartId, productId);
+
+    io.emit("cartUpdated", { cartId, updatedCart });
+    res.json({ status: "success", response: updatedCart });
+  } catch (error) {
+    console.error("Error removing product from cart:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
 
-// Users Endpoints
-app.get("/api/users", async (req, res) => {
-  const users = await userManager.read();
-  if (users.length > 0) {
-    res.json({ success: true, response: users });
-  } else {
-    res.status(404).json({ success: false, message: "not found!" });
+app.put("/api/carts/:cid", async (req, res) => {
+  try {
+    const cartId = req.params.cid;
+    const products = req.body.products; // Assuming products is an array of product objects
+
+    // Use the CartDao or CartMemoryManager to handle cart update with the provided products
+    const updatedCart = await CartDao.updateCart(cartId, products);
+
+    io.emit("cartUpdated", { cartId, updatedCart });
+    res.json({ status: "success", response: updatedCart });
+  } catch (error) {
+    console.error("Error updating cart:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
 
-app.get("/api/users/:uid", async (req, res) => {
-  const userId = req.params.uid;
-  const user = await userManager.readOne(userId);
+app.put("/api/carts/:cid/products/:pid", async (req, res) => {
+  try {
+    const cartId = req.params.cid;
+    const productId = req.params.pid;
+    const quantity = req.body.quantity;
 
-  if (user) {
-    res.json({ success: true, response: user });
-  } else {
-    res.status(404).json({ success: false, message: "not found!" });
+    // Use the CartDao or CartMemoryManager to handle updating the quantity of a specific product in the cart
+    const updatedCart = await CartDao.updateProductQuantity(cartId, productId, quantity);
+
+    io.emit("cartUpdated", { cartId, updatedCart });
+    res.json({ status: "success", response: updatedCart });
+  } catch (error) {
+    console.error("Error updating product quantity in cart:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
 
-// Carts Endpoints
-app.post("/api/carts", async (req, res) => {
-  const newCart = await cartManager.create();
-  res.json({ success: true, response: newCart });
-});
+app.delete("/api/carts/:cid", async (req, res) => {
+  try {
+    const cartId = req.params.cid;
 
-app.get("/api/carts", async (req, res) => {
-  const carts = await cartManager.read();
-  if (carts.length > 0) {
-    res.json({ success: true, response: carts });
-  } else {
-    res.status(404).json({ success: false, message: "not found!" });
+    // Use the CartDao or CartMemoryManager to handle deleting the entire cart
+    await CartDao.deleteCart(cartId);
+
+    io.emit("cartUpdated", { cartId, updatedCart: null });
+    res.json({ status: "success", message: "Cart deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting cart:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
 
-app.post("/api/carts/:cid/product/:pid", async (req, res) => {
-  const cartId = req.params.cid;
-  const productId = req.params.pid;
-  const quantity = req.body.quantity || 1;
+// Add routes for viewing all products and a specific cart
+app.get("/views/products", async (req, res) => {
+  try {
+    // Use the ProductDao or ProductMemoryManager to fetch all products
+    const products = await ProductDao.getAllProducts();
 
-  const updatedCart = await cartManager.addProductToCart(
-    cartId,
-    productId,
-    quantity
-  );
-
-  if (updatedCart) {
-    io.emit("productUpdated", { cartId, updatedCart });
-    res.json({ success: true, response: updatedCart });
-  } else {
-    res.status(404).json({ success: false, message: "not found!" });
+    res.render("products", { products });
+  } catch (error) {
+    console.error("Error fetching products:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
 
-// Set up WebSocket
-io.on("connection", (socket) => {
-  console.log("A user connected");
+app.get("/views/carts/:cid", async (req, res) => {
+  try {
+    const cartId = req.params.cid;
+
+    // Use the CartDao or CartMemoryManager to fetch the details of a specific cart
+    const cart = await CartDao.getCart(cartId);
+
+    res.render("cart", { cart });
+  } catch (error) {
+    console.error("Error fetching cart details:", error.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
 });
 
-// Set up views router
-app.get("/realTimeProducts", async (req, res) => {
-  const products = await productManager.read();
-  res.render("realTimeProducts", { products });
-});
-
-// Set up static files
-app.use(express.static(path.join(__dirname, "public")));
+// ... (existing code)
 
 // Start the server
 const PORT = 9000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   dbConnection();
-  dotenv.config();
 });

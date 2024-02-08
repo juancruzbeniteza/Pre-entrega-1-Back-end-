@@ -1,8 +1,7 @@
 const { model, Schema } = require('mongoose');
 
 const MessageSchema = new Schema({
-  // Define your message schema fields here
-  // Example: userId, text, timestamp, etc.
+
 });
 
 const MessageModel = model('Message', MessageSchema);
@@ -26,5 +25,4 @@ module.exports = {
     }
   },
 
-  // Add other CRUD operations as needed
 };

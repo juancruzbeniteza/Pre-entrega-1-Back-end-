@@ -13,7 +13,7 @@ class ProductMemoryManager {
       price: data.price,
       thumbnail: data.thumbnail,
       code: data.code,
-      stock: data.stock, // Remove `,24` from here
+      stock: data.stock, 
     };
 
     this.products.push(newProduct);

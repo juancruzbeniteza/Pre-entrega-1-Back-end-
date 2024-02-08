@@ -1,8 +1,15 @@
-const { model, Schema } = require('mongoose');
+const { model, Schema, Types } = require('mongoose');
+
+const CartProductSchema = new Schema({
+  product: { type: Types.ObjectId, ref: 'Product' },
+  quantity: Number,
+});
 
 const CartSchema = new Schema({
-  // Define your cart schema fields here
-  // Example: userId, products, totalPrice, etc.
+  products: [CartProductSchema],
+  uid: { type: Types.ObjectId, ref: 'User' },
+  state: String,
+  // Add any other fields if necessary
 });
 
 const CartModel = model('Cart', CartSchema);
@@ -26,5 +33,5 @@ module.exports = {
     }
   },
 
-  // Add other CRUD operations as needed
+  // Add any other CRUD operations if needed
 };

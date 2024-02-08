@@ -1,8 +1,6 @@
 const { model, Schema } = require('mongoose');
 
 const UserSchema = new Schema({
-  // Define your user schema fields here
-  // Example: username, email, password, etc.
 });
 
 const UserModel = model('User', UserSchema);
@@ -26,5 +24,5 @@ module.exports = {
     }
   },
 
-  // Add other CRUD operations as needed
+ 
 };
