@@ -1,4 +1,4 @@
-
+require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const exphbs = require("express-handlebars");
@@ -6,8 +6,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const path = require("path");
 const mongoose = require("mongoose");
-const dbConnection = require("./utils/db.js");
-
+const connectDB = require("./server/data/utils/db.js");
 
 mongoose.connect(process.env.DB_LINK, {
   useUnifiedTopology: true,
@@ -18,8 +17,8 @@ mongoose.connect(process.env.DB_LINK, {
 });
 
 // Import DAO modules
-const CartDao = require("./mongo/carts.dao.js");
-const ProductDao = require("./mongo/products.dao.js");
+const CartDao = require("./server/data/mongo/carts.dao.js");
+const ProductDao = require("./server/data/mongo/products.dao.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -31,15 +30,11 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Set up Handlebars as the view engine
-app.engine("handlebars", exphbs({ defaultLayout: "main" }));
-app.set("view engine", "handlebars");
-
-// Handle CORS
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
+const hbs = exphbs.create({
+  defaultLayout: 'main',
 });
+app.engine("handlebars", hbs.engine);
+app.set("view engine", "handlebars");
 
 // Modify GET /api/products to handle filters, pagination, and sorting
 app.get("/api/products", async (req, res) => {
@@ -177,5 +172,5 @@ app.get("/views/carts/:cid", async (req, res) => {
 const PORT = 9000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  dbConnection();
+  connectDB();
 });
